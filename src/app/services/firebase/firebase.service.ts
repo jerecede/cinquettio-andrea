@@ -1,12 +1,14 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { initializeApp } from "firebase/app";
-import { collection, Firestore, getDocs, getFirestore, onSnapshot } from "firebase/firestore";
+import { addDoc, collection, doc, Firestore, getDocs, getFirestore, onSnapshot, setDoc, Timestamp } from "firebase/firestore";
 import { Cinguettio } from '../../model/cinguettio';
+import { LocationService } from '../location/location.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FirebaseService {
+
 
   firebaseConfig = {
     apiKey: "AIzaSyA7ymoFr6ZVE0AEy-SNkrpLws95vcMq-cc",
@@ -21,6 +23,7 @@ export class FirebaseService {
 
   cinguettii = signal<Cinguettio[]>([])
 
+  locationServ = inject(LocationService);
 
   constructor() { }
 
@@ -70,5 +73,43 @@ export class FirebaseService {
 
 
 
+
   }
+
+  postCiguettio(cinguettioText: string) {
+    
+    const newCinguettio: Cinguettio = {
+      text: cinguettioText,
+      creationTime: Timestamp.now()
+    }
+
+    this.locationServ.getLocation()
+    .then(loc => {
+      newCinguettio.location = {
+        lat: loc.coords.latitude,
+        lng: loc.coords.longitude
+      }
+      const path = collection(this.db, 'cinguettii');
+      addDoc(path, newCinguettio);
+      
+    })
+    .catch(err => {
+      console.log(err)
+      const path = collection(this.db, 'cinguettii');
+      addDoc(path, newCinguettio);
+    });
+
+
+
+  }
+
+  saveUser(uid:string, nick:string){
+    const user = {
+          nick: nick,
+        }
+        const path = doc(this.db, 'users', uid);
+        setDoc(path, user);
+        
+  }
+
 }

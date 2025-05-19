@@ -1,4 +1,5 @@
-<form (submit)="login()">
+<form (submit)="register()">
+    <input [(ngModel)]="nick" type="text" name="nick" id="nick">
     <input [(ngModel)]="email" type="email" name="email" id="email">
     <input [(ngModel)]="password" type="password" name="password" id="password">
     <button type="submit">accedi</button>

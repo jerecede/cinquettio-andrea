@@ -1,0 +1,14 @@
+.card{
+    width: 400px;
+    border: solid 1px crimson;
+    word-break: break-all;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.list{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
