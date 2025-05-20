@@ -2,9 +2,11 @@
     <a [routerLink]="['list']">CINGUETTIO</a>
     <span class="divider"></span>
     @if (!authServ.isAuth()) {
-        <a [routerLink]="['login']">login</a>
+        <a class="nav-action" [routerLink]="['login']">login</a>
+        <a class="nav-action" [routerLink]="['registration']">register</a>
     } @else {
-        <button (click)="logout()">logout</button>
+        <span>Benvenuto {{authServ.userData()?.nick}}</span>
+        <button class="nav-action" (click)="logout()">logout</button>
     }
     
 </div>

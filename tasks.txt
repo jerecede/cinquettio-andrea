@@ -1,0 +1,1 @@
+-usare leafletjs.com, tutorial, GeoJson json con dati geografici, convertire i nostri dati (array di cinguetti) convertirli in GeoJson

@@ -1,8 +1,9 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { initializeApp } from "firebase/app";
-import { addDoc, collection, doc, Firestore, getDocs, getFirestore, onSnapshot, setDoc, Timestamp } from "firebase/firestore";
+import { addDoc, collection, doc, Firestore, getDoc, getDocs, getFirestore, onSnapshot, setDoc, Timestamp } from "firebase/firestore";
 import { Cinguettio } from '../../model/cinguettio';
 import { LocationService } from '../location/location.service';
+import { retryWhen } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -22,6 +23,12 @@ export class FirebaseService {
   db?: any;
 
   cinguettii = signal<Cinguettio[]>([])
+
+  geoCinguettii = computed(() => {
+    this.fromCinguettiiToGeojson(this.cinguettii())
+  })
+
+  // geojson = signal<string>("")
 
   locationServ = inject(LocationService);
 
@@ -67,8 +74,11 @@ export class FirebaseService {
 
       });
 
-      this.cinguettii.update((_) => newArray);
-      
+      this.cinguettii.set(newArray);
+
+      // this.geojson.set(this.fromCinguettiiToGeojson(this.cinguettii()))
+
+
     })
 
 
@@ -77,39 +87,82 @@ export class FirebaseService {
   }
 
   postCiguettio(cinguettioText: string) {
-    
+
     const newCinguettio: Cinguettio = {
       text: cinguettioText,
       creationTime: Timestamp.now()
     }
 
     this.locationServ.getLocation()
-    .then(loc => {
-      newCinguettio.location = {
-        lat: loc.coords.latitude,
-        lng: loc.coords.longitude
-      }
-      const path = collection(this.db, 'cinguettii');
-      addDoc(path, newCinguettio);
-      
-    })
-    .catch(err => {
-      console.log(err)
-      const path = collection(this.db, 'cinguettii');
-      addDoc(path, newCinguettio);
-    });
+      .then(loc => {
+        newCinguettio.location = {
+          lat: loc.coords.latitude,
+          lng: loc.coords.longitude
+        }
+        const path = collection(this.db, 'cinguettii');
+        addDoc(path, newCinguettio);
+
+      })
+      .catch(err => {
+        console.log(err)
+        const path = collection(this.db, 'cinguettii');
+        addDoc(path, newCinguettio);
+      });
 
 
 
   }
 
-  saveUser(uid:string, nick:string){
+  saveUser(uid: string, nick: string) {
     const user = {
-          nick: nick,
+      nick: nick,
+    }
+    const path = doc(this.db, 'users', uid);
+    setDoc(path, user);
+
+  }
+
+  getUser(uid: string) {
+
+    var path = doc(this.db, "users", uid);
+
+    return getDoc(path).then(snap => snap.data());
+
+  }
+
+  fromCinguettiiToGeojson(cinguettii: Cinguettio[]): any {
+    const emptyGeojson: any = {
+      type: "FeatureCollection",
+      features: []
+    }
+
+    for (const cinguettio of cinguettii) {
+
+      if (cinguettio.location) {
+        const feature = {
+          type: "Feature",
+          properties: {
+            text: cinguettio.text,
+            creationTime: cinguettio.creationTime.toDate()
+          },
+          geometry: {
+            coordinates: [
+              cinguettio.location.lng,
+              cinguettio.location.lat
+            ],
+            type: "Point"
+          },
+          id: cinguettio.id
         }
-        const path = doc(this.db, 'users', uid);
-        setDoc(path, user);
-        
+
+        emptyGeojson.features.push(feature);
+      }
+
+    }
+
+    console.log('computed', JSON.stringify(emptyGeojson))
+
+    return JSON.stringify(emptyGeojson)
   }
 
 }

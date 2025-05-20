@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, UserCredential } from 'firebase/auth';
 import { FirebaseService } from '../firebase/firebase.service';
+import { User } from '../../model/user';
 
 @Injectable({
   providedIn: 'root'
@@ -11,6 +12,8 @@ export class AuthService {
 
   isAuth = signal<boolean>(false);
 
+  userData = signal<User | null>(null);
+
   constructor() {
 
     const auth = getAuth();
@@ -20,11 +23,21 @@ export class AuthService {
         // https://firebase.google.com/docs/reference/js/auth.user
         console.log('auth change authorized', user)
         this.isAuth.set(true);
+        this.firebaseServ.getUser(user.uid).then((data: any) => {
+          this.userData.set({
+            id: user.uid,
+            nick: data.nick,
+            email:user.email!,
+            creationTime: new Date(user.metadata.creationTime!),
+            lastLogin: new Date(user.metadata.lastSignInTime!)
+          })
+        });
         // ...
       } else {
         // User is signed out
         // ...
         console.log('auth change unauthorized')
+        this.userData.set(null);
         this.isAuth.set(false);
       }
     });
@@ -33,24 +46,10 @@ export class AuthService {
 
   }
 
-  firebaseLogin(email: string, password: string) {
+  firebaseLogin(email: string, password: string): Promise<UserCredential> {
 
     const auth = getAuth();
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        // Signed in 
-        const user = userCredential.user;
-        // ...
-        console.log('evviva', user);
-
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-
-        console.log('dannazione', errorCode, errorMessage);
-      });
-
+    return signInWithEmailAndPassword(auth, email, password)
   }
 
   firebaseLogout() {
@@ -63,22 +62,30 @@ export class AuthService {
   }
 
 
-  firebaseRegister(email: string, password: string, nick: string) {
+  firebaseRegister(email: string, password: string, nick: string): Promise<string> {
     const auth = getAuth();
-    createUserWithEmailAndPassword(auth, email, password)
+    
+    const promise = new Promise<string>((resolve, reject) => {
+       createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         // Signed up 
         const user = userCredential.user;
         console.log(user);
 
         this.firebaseServ.saveUser(user.uid, nick);
+
+        resolve("Bella storia!")
         // ...
       })
       .catch((error) => {
         const errorCode = error.code;
         const errorMessage = error.message;
         // ..
+        reject(errorMessage);
       });
+    })
+    
+    return promise;
   }
 
 

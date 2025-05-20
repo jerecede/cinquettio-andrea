@@ -13,10 +13,10 @@ export class LocationService {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (location) => resolve(location),
-          (error) => reject(error.message)
+          (error) => reject(error.message) // errore -permesso negato
         )
       } else {
-        reject("non c'è la location")
+        reject("non c'è la location") //errore -dispositivo non supporta geolocation
       }
 
     });
